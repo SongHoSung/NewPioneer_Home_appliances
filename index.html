@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>전자제품 하루만 최저가 | QR 주문서</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#F3F4F8; --card:#FFFFFF; --primary:#1A1A2E; --primary-light:#2D2D4E;
+    --accent:#C0392B; --accent-light:#E74C3C; --blue:#2563EB; --blue-light:#3B82F6;
+    --text:#1A1A1A; --text-muted:#71717A; --border:#E4E4E7; --highlight:#EFF6FF;
+    --shadow:0 2px 20px rgba(0,0,0,0.06); --radius:16px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+
+  .header{background:linear-gradient(135deg,#1A1A2E 0%,#16213E 50%,#0F3460 100%);color:#fff;padding:40px 20px 48px;text-align:center;position:relative;overflow:hidden}
+  .header::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle at 30% 70%,rgba(37,99,235,0.08) 0%,transparent 50%),radial-gradient(circle at 80% 20%,rgba(255,255,255,0.03) 0%,transparent 40%);pointer-events:none}
+  .header-badge{display:inline-block;background:rgba(37,99,235,0.2);backdrop-filter:blur(4px);border:1px solid rgba(37,99,235,0.3);padding:6px 18px;border-radius:50px;font-size:12px;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;font-weight:500;color:#93C5FD}
+  .header h1{font-size:30px;font-weight:900;letter-spacing:-1px;margin-bottom:8px}
+  .header p{font-size:14px;opacity:.7;font-weight:300}
+
+  .nav-tabs{display:flex;justify-content:center;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+  .nav-tab{flex:1;max-width:200px;padding:16px 8px;text-align:center;font-size:14px;font-weight:500;color:var(--text-muted);cursor:pointer;border-bottom:3px solid transparent;transition:all .3s;user-select:none}
+  .nav-tab:hover{color:var(--primary)}
+  .nav-tab.active{color:var(--primary);border-bottom-color:var(--blue);font-weight:700}
+  .nav-tab .tab-icon{font-size:18px;display:block;margin-bottom:4px}
+
+  .section{display:none;padding:20px;max-width:600px;margin:0 auto}
+  .section.active{display:block;animation:fadeUp .4s ease}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+  .form-card{background:var(--card);border-radius:var(--radius);padding:28px 20px;margin-bottom:16px;box-shadow:var(--shadow);border:1px solid var(--border)}
+  .form-card h3{font-size:16px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+  .form-card h3 .icon{width:28px;height:28px;background:var(--highlight);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .input-group{margin-bottom:14px}
+  .input-group label{display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:6px;letter-spacing:.5px}
+  .input-group label .req{color:var(--accent)}
+  .input-group input,.input-group textarea{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;font-family:inherit;transition:border-color .2s,box-shadow .2s;background:#FEFEFE}
+  .input-group input:focus,.input-group textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,0.1)}
+  .input-group textarea{resize:vertical;min-height:70px}
+
+  /* PROMO */
+  .promo-banner{background:linear-gradient(135deg,#1A1A2E 0%,#16213E 100%);border:1.5px solid #2D2D4E;border-radius:14px;padding:18px 20px;margin-bottom:16px;position:relative;overflow:hidden;display:flex;align-items:center;gap:14px}
+  .promo-banner::before{content:'';position:absolute;top:0;right:0;width:120px;height:100%;background:linear-gradient(135deg,transparent,rgba(37,99,235,0.1));pointer-events:none}
+  .promo-banner .promo-left{flex:1;min-width:0}
+  .promo-banner .promo-text{font-size:14px;font-weight:700;color:#F1F5F9;line-height:1.6}
+  .promo-banner .promo-sub{font-size:12px;color:#94A3B8;font-weight:400;margin-top:4px}
+  .promo-counter{flex-shrink:0;background:rgba(37,99,235,0.15);border:1.5px solid rgba(37,99,235,0.3);border-radius:12px;padding:10px 14px;text-align:center;min-width:76px}
+  .promo-counter .counter-num{font-size:26px;font-weight:900;color:#60A5FA;line-height:1}
+  .promo-counter .counter-label{font-size:10px;color:#94A3B8;font-weight:600;margin-top:4px;letter-spacing:.3px}
+  .promo-counter.sold-out .counter-num{color:var(--accent);font-size:18px}
+  .promo-counter.sold-out{border-color:rgba(192,57,43,0.3);background:rgba(192,57,43,0.1)}
+
+  /* PRODUCT */
+  .product-list{display:flex;flex-direction:column;gap:14px}
+  .product-item{padding:18px;background:#FEFEFE;border:1.5px solid var(--border);border-radius:14px;transition:all .25s}
+  .product-item.selected{border-color:var(--blue);background:#F8FAFF;box-shadow:0 0 0 3px rgba(37,99,235,0.08)}
+  .product-top{display:flex;align-items:center;gap:14px}
+  .product-emoji{width:56px;height:56px;background:var(--highlight);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0}
+  .product-info{flex:1;min-width:0}
+  .product-name{font-size:15px;font-weight:700}
+  .product-model{font-size:11px;color:var(--text-muted);font-weight:500;margin-top:1px;letter-spacing:.5px}
+  .product-desc{font-size:12px;color:var(--text-muted);margin-top:2px;line-height:1.5}
+
+  /* PRICE COMPARISON */
+  .price-compare{margin-top:12px;background:#F8F9FC;border-radius:10px;padding:12px 14px;border:1px solid var(--border)}
+  .price-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:13px}
+  .price-row .price-label{color:var(--text-muted);font-size:12px}
+  .price-row .price-val{font-weight:500;color:var(--text)}
+  .price-row .price-val.original{text-decoration:line-through;color:#A1A1AA}
+  .price-row .price-val.naver{text-decoration:line-through;color:#A1A1AA;font-size:12px}
+  .price-row.best{margin-top:4px;padding-top:8px;border-top:1.5px solid var(--border)}
+  .price-row.best .price-label{color:var(--accent);font-weight:700;font-size:12px}
+  .price-row.best .price-val{font-weight:900;color:var(--accent);font-size:18px}
+  .discount-badge{display:inline-block;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;margin-left:6px}
+
+  .qty-control{display:flex;align-items:center;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;flex-shrink:0}
+  .qty-btn{width:36px;height:36px;border:none;background:var(--bg);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text);font-weight:600;user-select:none;transition:background .15s}
+  .qty-btn:hover{background:#D4D4D8}
+  .qty-value{width:40px;text-align:center;font-size:15px;font-weight:700;border:none;background:#fff;color:var(--text)}
+  .product-images{display:flex;gap:8px;margin-top:12px;overflow-x:auto;padding-bottom:4px}
+  .product-images:empty{display:none}
+  .product-img-wrap{width:140px;height:105px;border-radius:10px;overflow:hidden;flex-shrink:0;border:1px solid var(--border);background:var(--bg)}
+  .product-img-wrap img{width:100%;height:100%;object-fit:cover}
+
+  .bank-info{background:linear-gradient(135deg,#EFF6FF 0%,#E0ECFF 100%);border:1.5px solid #BFDBFE;border-radius:14px;padding:20px;margin-top:8px}
+  .bank-info h4{font-size:14px;font-weight:700;color:var(--primary);margin-bottom:12px}
+  .bank-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:14px}
+  .bank-row .label{color:var(--text-muted);font-size:12px}
+  .bank-row .value{font-weight:600}
+  .copy-btn{margin-top:12px;width:100%;padding:10px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s}
+  .copy-btn:hover{background:var(--primary-light)}
+  .total-bar{background:var(--card);border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:var(--shadow);border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+  .total-bar .total-label{font-size:14px;color:var(--text-muted)}
+  .total-bar .total-amount{font-size:26px;font-weight:900;color:var(--accent)}
+  .submit-btn{width:100%;padding:18px;background:linear-gradient(135deg,var(--primary) 0%,#0F3460 100%);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .3s;box-shadow:0 4px 16px rgba(26,26,46,0.3);margin-bottom:32px}
+  .submit-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(26,26,46,0.4)}
+  .submit-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+
+  .order-table-wrap{background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--border)}
+  .order-table-header{background:var(--primary);color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center}
+  .order-table-header h3{font-size:15px;font-weight:700}
+  .order-count{background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:50px;font-size:12px;font-weight:600}
+  .admin-bar{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:12px 16px;background:#FAFAFE;border-bottom:1px solid var(--border)}
+  .admin-toggle{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;color:var(--text-muted);transition:all .2s}
+  .admin-toggle:hover{border-color:#AAA}
+  .admin-toggle.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+  table{width:100%;border-collapse:collapse}
+  thead th{padding:12px 14px;font-size:11px;font-weight:700;color:var(--text-muted);text-align:left;border-bottom:2px solid var(--border);letter-spacing:.5px;text-transform:uppercase;background:#FAFAFE}
+  tbody td{padding:14px;font-size:13px;border-bottom:1px solid #F0F0F5;vertical-align:top}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:#F8F8FC}
+  .name-cell{font-weight:600}
+  .phone-cell{font-size:11px;color:var(--text-muted);font-weight:400;margin-top:4px}
+  .items-cell{line-height:1.8}
+  .items-cell .item-tag{display:inline-block;background:var(--highlight);padding:2px 10px;border-radius:6px;font-size:12px;margin:2px 4px 2px 0;font-weight:500}
+  .amount-cell{font-weight:700;color:var(--accent);white-space:nowrap}
+  .status-badge{display:inline-block;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700}
+  .status-pending{background:#FFF3CD;color:#856404}
+  .status-confirmed{background:#D4EDDA;color:#155724}
+  .delete-btn{width:30px;height:30px;border:none;background:#FFF0EE;color:var(--accent);border-radius:8px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+  .delete-btn:hover{background:#FFE0DC;transform:scale(1.1)}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--text-muted)}
+  .empty-state .empty-icon{font-size:48px;margin-bottom:12px}
+  .empty-state p{font-size:14px}
+
+  .qr-card{background:var(--card);border-radius:var(--radius);padding:40px 24px;text-align:center;box-shadow:var(--shadow);border:1px solid var(--border)}
+  .qr-card h2{font-size:20px;font-weight:700;margin-bottom:8px}
+  .qr-card p{color:var(--text-muted);font-size:13px;margin-bottom:24px}
+  #qrcode{display:inline-block;padding:16px;background:#fff;border-radius:12px;border:2px solid var(--border)}
+  .qr-url-box{margin-top:20px;display:flex;gap:8px;align-items:center}
+  .qr-url-box input{flex:1;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)}
+  .qr-url-box button{padding:12px 18px;background:var(--primary);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;white-space:nowrap;transition:background .2s}
+  .qr-url-box button:hover{background:var(--primary-light)}
+
+  .admin-product-card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;border:1.5px solid var(--border);box-shadow:var(--shadow);transition:all .2s}
+  .admin-product-card.disabled-card{opacity:.55}
+  .admin-product-top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+  .admin-product-info{flex:1}
+  .admin-product-name{font-size:14px;font-weight:700}
+  .admin-product-price{font-size:13px;color:var(--accent);font-weight:600}
+  .toggle-switch{position:relative;width:48px;height:26px;flex-shrink:0}
+  .toggle-switch input{opacity:0;width:0;height:0}
+  .toggle-slider{position:absolute;inset:0;background:#CCC;border-radius:26px;cursor:pointer;transition:.3s}
+  .toggle-slider::before{content:'';position:absolute;width:20px;height:20px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+  .toggle-switch input:checked+.toggle-slider{background:var(--blue)}
+  .toggle-switch input:checked+.toggle-slider::before{transform:translateX(22px)}
+  .admin-images{display:flex;gap:8px;margin-top:8px}
+  .admin-img-slot{width:110px;height:82px;border:2px dashed var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;position:relative;background:var(--bg);transition:all .2s;flex-shrink:0}
+  .admin-img-slot:hover{border-color:var(--blue);background:#EFF6FF}
+  .admin-img-slot.has-img{border-style:solid}
+  .admin-img-slot img{width:100%;height:100%;object-fit:cover}
+  .admin-img-slot .placeholder{font-size:11px;color:var(--text-muted);text-align:center;line-height:1.4}
+  .admin-img-slot .placeholder span{font-size:20px;display:block;margin-bottom:2px}
+  .admin-img-remove{position:absolute;top:3px;right:3px;width:22px;height:22px;background:rgba(0,0,0,0.6);color:#fff;border:none;border-radius:50%;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;z-index:2}
+  .admin-img-slot:hover .admin-img-remove{opacity:1}
+  .admin-edit-row{display:flex;gap:8px;margin-bottom:6px;align-items:center}
+  .admin-edit-row label{font-size:11px;font-weight:600;color:var(--text-muted);min-width:40px;flex-shrink:0}
+  .admin-edit-row input{flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:#FEFEFE;transition:border-color .2s}
+  .admin-edit-row input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(37,99,235,0.08)}
+  .admin-edit-row input.price-input{max-width:120px;text-align:right}
+  .admin-edit-row input.unit-input{max-width:70px;text-align:center}
+  .admin-save-btn{padding:7px 16px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s;flex-shrink:0}
+  .admin-save-btn:hover{background:var(--primary-light)}
+  .admin-edit-section{margin:10px 0;padding:12px;background:var(--bg);border-radius:10px;border:1px solid var(--border)}
+  .admin-edit-toggle{font-size:12px;color:var(--blue);cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:4px;margin-bottom:8px}
+  .admin-edit-toggle:hover{text-decoration:underline}
+  .promo-admin-card{background:linear-gradient(135deg,#F8FAFF 0%,#EFF6FF 100%);border:1.5px solid #BFDBFE;border-radius:14px;padding:16px;margin-bottom:14px}
+  .promo-admin-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .promo-admin-title{font-size:14px;font-weight:700;flex:1}
+
+  .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--primary);color:#fff;padding:14px 28px;border-radius:12px;font-size:14px;font-weight:500;box-shadow:0 8px 32px rgba(0,0,0,0.2);z-index:1000;opacity:0;transition:all .4s cubic-bezier(.16,1,.3,1);pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;padding:20px}
+  .modal-overlay.show{display:flex}
+  .modal{background:var(--card);border-radius:20px;padding:32px 24px;max-width:400px;width:100%;text-align:center;animation:modalIn .3s ease}
+  @keyframes modalIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+  .modal .modal-icon{font-size:48px;margin-bottom:12px}
+  .modal h3{font-size:18px;font-weight:700;margin-bottom:8px}
+  .modal p{font-size:14px;color:var(--text-muted);margin-bottom:24px;line-height:1.6}
+  .modal button{padding:14px 40px;background:var(--primary);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+  .dm-title{font-size:17px;font-weight:700;margin-bottom:6px;text-align:center}
+  .dm-desc{font-size:13px;color:var(--text-muted);margin-bottom:20px;text-align:center;line-height:1.6}
+  .dm-input-group{margin-bottom:16px;text-align:left}
+  .dm-input-group label{display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:6px}
+  .dm-input-group input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;font-family:inherit}
+  .dm-input-group input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,0.1)}
+  .dm-error{color:var(--accent);font-size:12px;font-weight:600;margin-top:6px;display:none}
+  .dm-buttons{display:flex;gap:10px;margin-top:20px}
+  .dm-buttons button{flex:1;padding:13px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s}
+  .dm-btn-cancel{background:var(--bg);color:var(--text-muted);border:1.5px solid var(--border) !important}
+  .dm-btn-cancel:hover{background:#E4E4E7}
+  .dm-btn-delete{background:var(--accent);color:#fff}
+  .dm-btn-delete:hover{background:#A93226}
+
+  @media(max-width:480px){
+    .header{padding:28px 16px 36px} .header h1{font-size:24px} .section{padding:14px}
+    .product-top{gap:10px} .product-emoji{width:48px;height:48px;font-size:24px}
+    thead th,tbody td{padding:10px 8px}
+    .product-img-wrap{width:110px;height:82px} .admin-img-slot{width:90px;height:68px}
+    .price-row.best .price-val{font-size:16px}
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-badge">⚡ 전자제품 하루만 최저가 판매</div>
+  <h1>오늘 하루만, 최저가 구매 찬스</h1>
+  <p>임직원 혜택가로, 전국 최저가보다 더 저렴하게 드립니다</p>
+</div>
+
+<div class="nav-tabs">
+  <div class="nav-tab active" onclick="switchTab('order')"><span class="tab-icon">🛒</span>주문하기</div>
+  <div class="nav-tab" onclick="switchTab('orders')"><span class="tab-icon">📋</span>주문현황</div>
+  <div class="nav-tab" onclick="switchTab('admin')"><span class="tab-icon">⚙️</span>관리</div>
+  <div class="nav-tab" onclick="switchTab('qr')"><span class="tab-icon">📱</span>QR</div>
+</div>
+
+<!-- ===== 주문하기 ===== -->
+<div id="tab-order" class="section active">
+  <div id="promo-banner-area"></div>
+  <div class="form-card">
+    <h3><span class="icon">👤</span> 주문자 정보</h3>
+    <div class="input-group"><label>이름 <span class="req">*</span></label><input type="text" id="name" placeholder="홍길동"></div>
+    <div class="input-group"><label>연락처 <span class="req">*</span></label><input type="tel" id="phone" placeholder="010-0000-0000"></div>
+    <div class="input-group"><label>배송 주소 <span class="req">*</span></label><textarea id="address" placeholder="서울시 강남구 테헤란로 123&#10;상세 주소를 입력해주세요"></textarea></div>
+    <div class="input-group"><label>배송 메모</label><input type="text" id="memo" placeholder="부재시 경비실에 맡겨주세요"></div>
+  </div>
+  <div class="form-card">
+    <h3><span class="icon">📦</span> 제품 선택</h3>
+    <div class="product-list" id="product-list"></div>
+  </div>
+  <div class="total-bar" id="total-bar" style="display:none;">
+    <div><div class="total-label">총 주문금액</div></div>
+    <div class="total-amount" id="total-amount">0원</div>
+  </div>
+  <div class="form-card">
+    <h3><span class="icon">🏦</span> 결제 안내</h3>
+    <div class="bank-info">
+      <h4>계좌이체 정보</h4>
+      <div class="bank-row"><span class="label">은행</span><span class="value">카카오뱅크</span></div>
+      <div class="bank-row"><span class="label">계좌번호</span><span class="value" id="account-num">333337053463</span></div>
+      <div class="bank-row"><span class="label">예금주</span><span class="value">송호성</span></div>
+      <button class="copy-btn" onclick="copyAccount()">📋 계좌번호 복사하기</button>
+    </div>
+    <p style="margin-top:14px;font-size:12px;color:var(--text-muted);line-height:1.6;">
+      ※ 주문 후 <strong>24시간 이내</strong> 입금 부탁드립니다.<br>
+      ※ 입금자명은 <strong>주문자 이름</strong>과 동일하게 해주세요.
+    </p>
+  </div>
+  <button class="submit-btn" onclick="submitOrder()">주문 접수하기</button>
+</div>
+
+<!-- ===== 주문현황 ===== -->
+<div id="tab-orders" class="section">
+  <div class="order-table-wrap">
+    <div class="order-table-header"><h3>📋 주문 현황</h3><span class="order-count" id="order-count">0건</span></div>
+    <div class="admin-bar"><button class="admin-toggle" id="admin-toggle" onclick="toggleAdmin()">🔒 관리자 모드</button></div>
+    <div id="order-list-body"></div>
+  </div>
+</div>
+
+<!-- ===== 관리 ===== -->
+<div id="tab-admin" class="section">
+  <div id="admin-login-wall">
+    <div class="form-card" style="text-align:center;">
+      <h3 style="justify-content:center;"><span class="icon">🔐</span> 관리자 인증</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">비밀번호를 입력해주세요.</p>
+      <div class="input-group"><input type="password" id="admin-page-pw" placeholder="관리자 비밀번호" style="text-align:center;"></div>
+      <button class="submit-btn" style="margin-bottom:0;" onclick="adminPageLogin()">로그인</button>
+    </div>
+  </div>
+  <div id="admin-content" style="display:none;">
+    <div class="form-card">
+      <h3><span class="icon">🎉</span> 프로모션 배너</h3>
+      <div class="promo-admin-card">
+        <div class="promo-admin-top"><div class="promo-admin-title">배너 표시</div>
+          <label class="toggle-switch"><input type="checkbox" id="promo-toggle" onchange="togglePromo(this.checked)"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="input-group" style="margin-bottom:8px;"><label>메인 문구</label><input type="text" id="promo-main-input"></div>
+        <div class="input-group" style="margin-bottom:8px;"><label>서브 문구 (선택)</label><input type="text" id="promo-sub-input"></div>
+        <div class="input-group" style="margin-bottom:8px;"><label>선착순 인원 수</label><input type="number" id="promo-slots-input" style="max-width:120px;"></div>
+        <button class="admin-save-btn" style="width:100%;padding:10px;margin-top:4px;" onclick="savePromo()">프로모션 저장</button>
+      </div>
+    </div>
+    <div class="form-card">
+      <h3><span class="icon">📦</span> 제품 관리</h3>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">토글로 판매 여부를 설정하고, ✏️ 수정을 눌러 제품 정보를 편집하세요.</p>
+      <div id="admin-product-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== QR ===== -->
+<div id="tab-qr" class="section">
+  <div class="qr-card">
+    <h2>QR코드 주문 링크</h2>
+    <p>QR코드를 스캔하면 주문 페이지로 이동합니다.</p>
+    <div id="qrcode"></div>
+    <div class="qr-url-box"><input type="url" id="qr-url" placeholder="https://your-site.com/order-page.html"><button onclick="generateQR()">생성</button></div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="success-modal"><div class="modal"><div class="modal-icon">✅</div><h3>주문이 접수되었습니다!</h3><p>계좌이체 완료 후 확인까지<br><strong>1~2시간</strong> 정도 소요됩니다.<br>감사합니다!</p><button onclick="closeModal()">확인</button></div></div>
+<div class="modal-overlay" id="admin-modal"><div class="modal"><div class="dm-title">🔐 관리자 인증</div><div class="dm-desc">비밀번호를 입력해주세요.</div><div class="dm-input-group"><label>비밀번호</label><input type="password" id="admin-pw-input" placeholder="비밀번호 입력"></div><div class="dm-error" id="admin-pw-error">비밀번호가 일치하지 않습니다.</div><div class="dm-buttons"><button class="dm-btn-cancel" onclick="closeAdminModal()">취소</button><button class="dm-btn-delete" style="background:var(--primary);" onclick="confirmAdminLogin()">확인</button></div></div></div>
+<div class="modal-overlay" id="delete-modal"><div class="modal"><div class="dm-title">🗑️ 주문 삭제</div><div class="dm-desc" id="delete-modal-desc"></div><div id="delete-verify-section"><div class="dm-input-group"><label>주문 시 입력한 연락처</label><input type="tel" id="delete-phone-input" placeholder="010-0000-0000"></div><div class="dm-error" id="delete-phone-error">연락처가 일치하지 않습니다.</div></div><div class="dm-buttons"><button class="dm-btn-cancel" onclick="closeDeleteModal()">취소</button><button class="dm-btn-delete" onclick="confirmDelete()">삭제</button></div></div></div>
+
+<input type="file" id="img-upload-input" accept="image/*" style="display:none;">
+<div class="toast" id="toast"></div>
+
+<script>
+const ADMIN_PASSWORD = '1234';
+let isAdmin=false, isAdminPage=false, deleteTargetId=null;
+let imgUploadTarget={productId:null,slotIndex:null};
+
+const DEFAULT_PRODUCTS = [
+  { id:'dq134', name:'LG 휘센 오브제컬렉션 제습기', model:'DQ134MWEC', desc:'2025년형 오브제컬렉션 제습기', price:320000, originalPrice:498000, naverPrice:358180, discountPct:11, unit:'대', emoji:'💨', enabled:true },
+  { id:'as156', name:'LG 퓨리케어 360 공기청정기 Hit', model:'AS156HWWC', desc:'360도 청정 — 퓨리케어 히트 모델', price:255000, originalPrice:565000, naverPrice:270900, discountPct:5, unit:'대', emoji:'🌬️', enabled:true },
+  { id:'mlj39', name:'LG 디오스 오브제컬렉션 광파오븐', model:'MLJ39EWSO', desc:'오브제컬렉션 디자인 — 광파오븐', price:330000, originalPrice:490000, naverPrice:343230, discountPct:3, unit:'대', emoji:'🍳', enabled:true },
+];
+
+function loadProducts(){
+  const saved=localStorage.getItem('elec_products_config');
+  if(saved){const config=JSON.parse(saved);return DEFAULT_PRODUCTS.map(dp=>{const c=config.find(x=>x.id===dp.id);if(c)return{...dp,name:c.name??dp.name,desc:c.desc??dp.desc,price:c.price??dp.price,originalPrice:c.originalPrice??dp.originalPrice,naverPrice:c.naverPrice??dp.naverPrice,discountPct:c.discountPct??dp.discountPct,unit:c.unit??dp.unit,enabled:c.enabled??dp.enabled};return{...dp}})}
+  return DEFAULT_PRODUCTS.map(p=>({...p}));
+}
+function saveProductConfig(products){localStorage.setItem('elec_products_config',JSON.stringify(products.map(p=>({id:p.id,name:p.name,desc:p.desc,price:p.price,originalPrice:p.originalPrice,naverPrice:p.naverPrice,discountPct:p.discountPct,unit:p.unit,enabled:p.enabled}))))}
+function loadImages(){try{return JSON.parse(localStorage.getItem('elec_product_images')||'{}')}catch{return{}}}
+function saveImages(imgs){try{localStorage.setItem('elec_product_images',JSON.stringify(imgs))}catch{showToast('⚠️ 이미지 용량 초과')}}
+
+const DEFAULT_PROMO={enabled:true,main:'🎁 선착순 주문자 10명에게 신세계 모바일 상품권 3만원 증정!',sub:'지금 바로 주문하시고 특별한 혜택을 받아가세요',totalSlots:10};
+function loadPromo(){try{return JSON.parse(localStorage.getItem('elec_promo_config'))||{...DEFAULT_PROMO}}catch{return{...DEFAULT_PROMO}}}
+function savePromoConfig(cfg){localStorage.setItem('elec_promo_config',JSON.stringify(cfg))}
+
+let PRODUCTS=loadProducts(), productImages=loadImages(), promoConfig=loadPromo();
+let quantities={};PRODUCTS.forEach(p=>quantities[p.id]=0);
+let orders=JSON.parse(localStorage.getItem('elec_orders')||'[]');
+let editingProductId=null;
+
+// ===== PROMO =====
+function renderPromoBanner(){
+  const area=document.getElementById('promo-banner-area');
+  if(!promoConfig.enabled||!promoConfig.main){area.innerHTML='';return}
+  const total=promoConfig.totalSlots||10,remaining=Math.max(0,total-orders.length),soldOut=remaining<=0;
+  area.innerHTML=`<div class="promo-banner"><div class="promo-left"><div class="promo-text">${promoConfig.main}</div>${promoConfig.sub?`<div class="promo-sub">${promoConfig.sub}</div>`:''}</div><div class="promo-counter ${soldOut?'sold-out':''}"><div class="counter-num">${soldOut?'마감':remaining}</div><div class="counter-label">${soldOut?'프로모션 종료':total+'명 중 잔여'}</div></div></div>`;
+}
+function renderPromoAdmin(){
+  document.getElementById('promo-toggle').checked=promoConfig.enabled;
+  document.getElementById('promo-main-input').value=promoConfig.main||'';
+  document.getElementById('promo-sub-input').value=promoConfig.sub||'';
+  document.getElementById('promo-slots-input').value=promoConfig.totalSlots||10;
+}
+function togglePromo(en){promoConfig.enabled=en;savePromoConfig(promoConfig);renderPromoBanner();showToast(en?'✅ 프로모션 활성화':'⛔ 프로모션 비활성화')}
+function savePromo(){promoConfig.main=document.getElementById('promo-main-input').value.trim();promoConfig.sub=document.getElementById('promo-sub-input').value.trim();promoConfig.totalSlots=parseInt(document.getElementById('promo-slots-input').value)||10;savePromoConfig(promoConfig);renderPromoBanner();showToast('✅ 프로모션 저장 완료')}
+
+// ===== PRODUCTS (customer) =====
+function renderProducts(){
+  const list=document.getElementById('product-list');
+  const enabled=PRODUCTS.filter(p=>p.enabled);
+  if(!enabled.length){list.innerHTML='<div class="empty-state"><div class="empty-icon">📦</div><p>현재 판매 중인 제품이 없습니다.</p></div>';return}
+  list.innerHTML=enabled.map(p=>{
+    const imgs=productImages[p.id]||[];
+    const imgHtml=imgs.length?`<div class="product-images">${imgs.map(src=>`<div class="product-img-wrap"><img src="${src}"></div>`).join('')}</div>`:'';
+    return `<div class="product-item ${quantities[p.id]>0?'selected':''}" id="item-${p.id}">
+      <div class="product-top">
+        <div class="product-emoji">${p.emoji}</div>
+        <div class="product-info">
+          <div class="product-name">${p.name}</div>
+          ${p.model?`<div class="product-model">${p.model}</div>`:''}
+          <div class="product-desc">${p.desc}</div>
+        </div>
+        <div class="qty-control">
+          <button class="qty-btn" onclick="changeQty('${p.id}',-1)">−</button>
+          <div class="qty-value" id="qty-${p.id}">${quantities[p.id]}</div>
+          <button class="qty-btn" onclick="changeQty('${p.id}',1)">+</button>
+        </div>
+      </div>
+      <div class="price-compare">
+        <div class="price-row"><span class="price-label">정상가</span><span class="price-val original">${(p.originalPrice||0).toLocaleString()}원</span></div>
+        <div class="price-row"><span class="price-label">네이버 최저가</span><span class="price-val naver">${(p.naverPrice||0).toLocaleString()}원</span></div>
+        <div class="price-row best"><span class="price-label">★ 최대 혜택가 ${p.discountPct?`<span class="discount-badge">최저가 대비 -${p.discountPct}%</span>`:''}</span><span class="price-val">${p.price.toLocaleString()}원</span></div>
+      </div>
+      ${imgHtml}
+    </div>`;
+  }).join('');
+  updateTotal();
+}
+function changeQty(id,d){quantities[id]=Math.max(0,Math.min(99,quantities[id]+d));document.getElementById('qty-'+id).textContent=quantities[id];const el=document.getElementById('item-'+id);quantities[id]>0?el.classList.add('selected'):el.classList.remove('selected');updateTotal()}
+function updateTotal(){let t=0;PRODUCTS.forEach(p=>{if(p.enabled)t+=p.price*quantities[p.id]});const bar=document.getElementById('total-bar');if(t>0){bar.style.display='flex';document.getElementById('total-amount').textContent=t.toLocaleString()+'원'}else bar.style.display='none'}
+
+// ===== ADMIN PRODUCTS =====
+function renderAdminProducts(){
+  const list=document.getElementById('admin-product-list');
+  list.innerHTML=PRODUCTS.map(p=>{
+    const imgs=productImages[p.id]||[];const isEd=editingProductId===p.id;
+    function slot(idx){if(imgs[idx])return`<div class="admin-img-slot has-img" onclick="event.stopPropagation()"><img src="${imgs[idx]}"><button class="admin-img-remove" onclick="event.stopPropagation();removeImage('${p.id}',${idx})">✕</button></div>`;return`<div class="admin-img-slot" onclick="triggerImageUpload('${p.id}',${idx})"><div class="placeholder"><span>📷</span>사진 ${idx+1}</div></div>`}
+    const editSec=isEd?`<div class="admin-edit-section">
+      <div class="admin-edit-row"><label>제품명</label><input id="edit-name-${p.id}" value="${p.name}"></div>
+      <div class="admin-edit-row"><label>모델명</label><input id="edit-model-${p.id}" value="${p.model||''}"></div>
+      <div class="admin-edit-row"><label>설명</label><input id="edit-desc-${p.id}" value="${p.desc}"></div>
+      <div class="admin-edit-row"><label>혜택가</label><input class="price-input" id="edit-price-${p.id}" type="number" value="${p.price}"></div>
+      <div class="admin-edit-row"><label>정상가</label><input class="price-input" id="edit-orig-${p.id}" type="number" value="${p.originalPrice||0}"></div>
+      <div class="admin-edit-row"><label>최저가</label><input class="price-input" id="edit-naver-${p.id}" type="number" value="${p.naverPrice||0}">
+        <label style="min-width:28px">할인%</label><input class="unit-input" id="edit-disc-${p.id}" type="number" value="${p.discountPct||0}">
+        <button class="admin-save-btn" onclick="saveProductEdit('${p.id}')">저장</button></div>
+    </div>`:'';
+    return`<div class="admin-product-card ${p.enabled?'':'disabled-card'}">
+      <div class="admin-product-top">
+        <div class="product-emoji" style="width:42px;height:42px;font-size:22px;border-radius:10px;">${p.emoji}</div>
+        <div class="admin-product-info"><div class="admin-product-name">${p.name}</div><div class="admin-product-price">${p.price.toLocaleString()}원</div></div>
+        <label class="toggle-switch"><input type="checkbox" ${p.enabled?'checked':''} onchange="toggleProduct('${p.id}',this.checked)"><span class="toggle-slider"></span></label>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">${p.model||''} — ${p.desc}</div>
+      <div class="admin-edit-toggle" onclick="toggleEdit('${p.id}')">${isEd?'▲ 접기':'✏️ 수정'}</div>${editSec}
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin:8px 0 6px;">제품 이미지 (최대 2장)</div>
+      <div class="admin-images">${slot(0)}${slot(1)}</div>
+    </div>`}).join('');
+}
+function toggleEdit(id){editingProductId=editingProductId===id?null:id;renderAdminProducts()}
+function saveProductEdit(id){
+  const p=PRODUCTS.find(x=>x.id===id);if(!p)return;
+  const n=document.getElementById('edit-name-'+id).value.trim();if(!n)return showToast('⚠️ 제품명을 입력해주세요.');
+  p.name=n; p.model=document.getElementById('edit-model-'+id).value.trim();
+  p.desc=document.getElementById('edit-desc-'+id).value.trim();
+  p.price=parseInt(document.getElementById('edit-price-'+id).value)||p.price;
+  p.originalPrice=parseInt(document.getElementById('edit-orig-'+id).value)||0;
+  p.naverPrice=parseInt(document.getElementById('edit-naver-'+id).value)||0;
+  p.discountPct=parseInt(document.getElementById('edit-disc-'+id).value)||0;
+  saveProductConfig(PRODUCTS);editingProductId=null;renderAdminProducts();renderProducts();showToast('✅ 제품 정보 저장 완료');
+}
+function toggleProduct(id,en){const p=PRODUCTS.find(x=>x.id===id);if(p){p.enabled=en;saveProductConfig(PRODUCTS);renderAdminProducts();renderProducts();showToast(en?`✅ ${p.name} 판매 활성화`:`⛔ ${p.name} 판매 중지`)}}
+
+// ===== IMAGE =====
+function triggerImageUpload(pid,idx){imgUploadTarget={productId:pid,slotIndex:idx};document.getElementById('img-upload-input').click()}
+document.addEventListener('DOMContentLoaded',()=>{document.getElementById('img-upload-input').addEventListener('change',function(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(ev){const img=new Image();img.onload=function(){const canvas=document.createElement('canvas');const MAX=600;let w=img.width,h=img.height;if(w>MAX||h>MAX){if(w>h){h=h*MAX/w;w=MAX}else{w=w*MAX/h;h=MAX}}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);const b64=canvas.toDataURL('image/jpeg',0.7);const{productId,slotIndex}=imgUploadTarget;if(!productImages[productId])productImages[productId]=[];productImages[productId][slotIndex]=b64;saveImages(productImages);renderAdminProducts();renderProducts();showToast('✅ 이미지 업로드 완료')};img.src=ev.target.result};reader.readAsDataURL(file);this.value=''})});
+function removeImage(pid,idx){if(productImages[pid]){productImages[pid].splice(idx,1);if(!productImages[pid].length)delete productImages[pid];saveImages(productImages);renderAdminProducts();renderProducts();showToast('🗑️ 이미지 삭제 완료')}}
+
+// ===== UTIL =====
+function maskName(n){n=n.trim();if(n.length<=1)return n;if(n.length===2)return n[0]+'*';return n[0]+'*'.repeat(n.length-2)+n[n.length-1]}
+
+// ===== TABS =====
+function switchTab(tab){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));document.getElementById('tab-'+tab).classList.add('active');document.querySelectorAll('.nav-tab')[{order:0,orders:1,admin:2,qr:3}[tab]].classList.add('active');if(tab==='orders')renderOrders();if(tab==='admin'){if(isAdminPage){document.getElementById('admin-login-wall').style.display='none';document.getElementById('admin-content').style.display='block';renderAdminProducts();renderPromoAdmin()}else{document.getElementById('admin-login-wall').style.display='block';document.getElementById('admin-content').style.display='none'}}}
+function adminPageLogin(){if(document.getElementById('admin-page-pw').value===ADMIN_PASSWORD){isAdminPage=true;isAdmin=true;document.getElementById('admin-toggle').classList.add('active');document.getElementById('admin-toggle').innerHTML='🔓 관리자 모드 ON';document.getElementById('admin-login-wall').style.display='none';document.getElementById('admin-content').style.display='block';document.getElementById('admin-page-pw').value='';renderAdminProducts();renderPromoAdmin();showToast('🔓 관리자 인증 완료')}else{showToast('⚠️ 비밀번호가 일치하지 않습니다.');document.getElementById('admin-page-pw').value=''}}
+
+// ===== ORDER =====
+function submitOrder(){
+  const name=document.getElementById('name').value.trim(),phone=document.getElementById('phone').value.trim(),address=document.getElementById('address').value.trim(),memo=document.getElementById('memo').value.trim();
+  if(!name)return showToast('⚠️ 이름을 입력해주세요.');if(!phone)return showToast('⚠️ 연락처를 입력해주세요.');if(!address)return showToast('⚠️ 배송 주소를 입력해주세요.');
+  const items=[];let total=0;PRODUCTS.forEach(p=>{if(p.enabled&&quantities[p.id]>0){items.push({name:p.name,qty:quantities[p.id],unit:p.unit,subtotal:p.price*quantities[p.id]});total+=p.price*quantities[p.id]}});
+  if(!items.length)return showToast('⚠️ 제품을 1개 이상 선택해주세요.');
+  orders.unshift({id:Date.now(),name,phone,address,memo,items,total,date:new Date().toLocaleString('ko-KR'),status:'pending'});
+  localStorage.setItem('elec_orders',JSON.stringify(orders));
+  document.getElementById('name').value='';document.getElementById('phone').value='';document.getElementById('address').value='';document.getElementById('memo').value='';
+  PRODUCTS.forEach(p=>quantities[p.id]=0);renderProducts();renderPromoBanner();
+  document.getElementById('success-modal').classList.add('show');
+}
+
+// ===== ADMIN MODE =====
+function toggleAdmin(){if(isAdmin){isAdmin=false;isAdminPage=false;document.getElementById('admin-toggle').classList.remove('active');document.getElementById('admin-toggle').innerHTML='🔒 관리자 모드';document.getElementById('admin-login-wall').style.display='block';document.getElementById('admin-content').style.display='none';renderOrders();showToast('🔒 관리자 모드 해제')}else{document.getElementById('admin-pw-input').value='';document.getElementById('admin-pw-error').style.display='none';document.getElementById('admin-modal').classList.add('show');setTimeout(()=>document.getElementById('admin-pw-input').focus(),300)}}
+function confirmAdminLogin(){if(document.getElementById('admin-pw-input').value===ADMIN_PASSWORD){isAdmin=true;isAdminPage=true;document.getElementById('admin-modal').classList.remove('show');document.getElementById('admin-toggle').classList.add('active');document.getElementById('admin-toggle').innerHTML='🔓 관리자 모드 ON';renderOrders();showToast('🔓 관리자 모드 활성화')}else{document.getElementById('admin-pw-error').style.display='block';document.getElementById('admin-pw-input').value='';document.getElementById('admin-pw-input').focus()}}
+function closeAdminModal(){document.getElementById('admin-modal').classList.remove('show')}
+document.addEventListener('keydown',e=>{if(e.key==='Enter'){if(document.getElementById('admin-modal').classList.contains('show'))confirmAdminLogin();if(document.getElementById('delete-modal').classList.contains('show'))confirmDelete();if(document.activeElement===document.getElementById('admin-page-pw'))adminPageLogin()}});
+
+// ===== DELETE =====
+function requestDelete(oid){deleteTargetId=oid;const o=orders.find(x=>x.id===oid);if(!o)return;document.getElementById('delete-phone-input').value='';document.getElementById('delete-phone-error').style.display='none';if(isAdmin){document.getElementById('delete-modal-desc').innerHTML=`<strong>${o.name}</strong>님의 주문을<br>정말 삭제하시겠습니까?`;document.getElementById('delete-verify-section').style.display='none'}else{document.getElementById('delete-modal-desc').innerHTML=`주문자 본인만 삭제할 수 있습니다.<br>주문 시 입력한 <strong>연락처</strong>를 입력해주세요.`;document.getElementById('delete-verify-section').style.display='block'}document.getElementById('delete-modal').classList.add('show');if(!isAdmin)setTimeout(()=>document.getElementById('delete-phone-input').focus(),300)}
+function confirmDelete(){const o=orders.find(x=>x.id===deleteTargetId);if(!o)return;if(!isAdmin){const inp=document.getElementById('delete-phone-input').value.replace(/[\s\-]/g,'');if(inp!==o.phone.replace(/[\s\-]/g,'')){document.getElementById('delete-phone-error').style.display='block';document.getElementById('delete-phone-input').value='';document.getElementById('delete-phone-input').focus();return}}orders=orders.filter(x=>x.id!==deleteTargetId);localStorage.setItem('elec_orders',JSON.stringify(orders));deleteTargetId=null;document.getElementById('delete-modal').classList.remove('show');renderOrders();renderPromoBanner();showToast('✅ 주문 삭제 완료')}
+function closeDeleteModal(){deleteTargetId=null;document.getElementById('delete-modal').classList.remove('show')}
+
+// ===== ORDERS LIST =====
+function renderOrders(){const body=document.getElementById('order-list-body');document.getElementById('order-count').textContent=orders.length+'건';if(!orders.length){body.innerHTML='<div class="empty-state"><div class="empty-icon">📭</div><p>아직 접수된 주문이 없습니다.</p></div>';return}let html=`<table><thead><tr><th>주문자</th><th>주문제품</th><th>금액</th><th>상태</th><th style="width:40px"></th></tr></thead><tbody>`;orders.forEach(o=>{const tags=o.items.map(i=>`<span class="item-tag">${i.name} ${i.qty}${i.unit}</span>`).join(' ');const sc=o.status==='confirmed'?'status-confirmed':'status-pending',st=o.status==='confirmed'?'입금확인':'입금대기';const nc=isAdmin?`${o.name}<div class="phone-cell">📞 ${o.phone}</div><div class="phone-cell">📍 ${o.address.replace(/\n/g,', ')}</div>${o.memo?`<div class="phone-cell">💬 ${o.memo}</div>`:''}`  :maskName(o.name);html+=`<tr><td class="name-cell">${nc}</td><td class="items-cell">${tags}</td><td class="amount-cell">${o.total.toLocaleString()}원</td><td><span class="status-badge ${sc}">${st}</span></td><td><button class="delete-btn" onclick="requestDelete(${o.id})" title="주문 삭제">✕</button></td></tr>`});html+='</tbody></table>';body.innerHTML=html}
+
+// ===== QR / UTIL =====
+function generateQR(){const url=document.getElementById('qr-url').value.trim();if(!url)return showToast('⚠️ URL을 입력해주세요.');const c=document.getElementById('qrcode');c.innerHTML='';new QRCode(c,{text:url,width:200,height:200,colorDark:'#1A1A2E',colorLight:'#FFFFFF',correctLevel:QRCode.CorrectLevel.H});showToast('✅ QR코드 생성 완료')}
+function copyAccount(){const n=document.getElementById('account-num').textContent;navigator.clipboard.writeText(n).then(()=>showToast('✅ 계좌번호 복사 완료')).catch(()=>showToast('📋 계좌번호: '+n))}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
+function closeModal(){document.getElementById('success-modal').classList.remove('show')}
+
+renderProducts();renderPromoBanner();
+window.addEventListener('load',()=>{const u=document.getElementById('qr-url');if(window.location.protocol.startsWith('http'))u.value=window.location.href});
+</script>
+</body>
+</html>
